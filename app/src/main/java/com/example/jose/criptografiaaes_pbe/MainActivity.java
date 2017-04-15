@@ -16,6 +16,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
@@ -30,6 +31,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -145,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void connectSSL(String url) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, KeyManagementException {
+    private void connectSSL(String url) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
         /*
         * Esse código lê recursos bruto que é, na verdade, o keystore BKS e o usa como objeto classe KeyStore.
         * */
@@ -163,6 +165,15 @@ public class MainActivity extends AppCompatActivity {
         trustMrg.init(selfsignedKeys);
 
         /*
+         * Similarmente a quando criamos TrustManagerFactory, isso cria um KeyManagerFactory
+          * que produzirá objetos KeyManager que utilizam os algoritmos SSL/TLS padrão
+          * (é isso que faz o método getDefaultAlgorithm()) e utilizará nosso keystore personalisado,
+          * que é configurado na chamada init() que envia esse keystore, para decidir que certificado
+          * fornecer para os servidores que requerem autenticação do lado do cliente.*/
+        KeyManagerFactory keyMrg = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyMrg.init(selfsignedKeys, "To35@nny85".toCharArray());
+
+        /*
          * A chamada para o init() utiliza três parâmetros:
          *  1 - as fontes das chaves usadas do lado do cliente, as fontes de confiança e as fontes de aleatoriedade
          *      como não estamos realizando SSL/TLS onde o servidor autentica o cliente, mas somente onde o cliente autoriza
@@ -170,14 +181,14 @@ public class MainActivity extends AppCompatActivity {
          *  2 - O segundo parâmetro é onde fornecemos a lista TrustManager gerada pelo TrustManagerFactory.
          *  3 - Os números aleatorios necessários para SSL/TLS são gerados. Aqui estamos usando uma instancia SecureRandom.
           * */
-        SSLContext selfsignedSSLContext = SSLContext.getInstance("TLS");
-        selfsignedSSLContext.init(null, trustMrg.getTrustManagers(), new SecureRandom());
+        SSLContext privateSSLcontext = SSLContext.getInstance("TLS");
+        privateSSLcontext.init(keyMrg.getKeyManagers(), trustMrg.getTrustManagers(), new SecureRandom());
 
         /*
         * O método estático setDefaultSSLSocketFactory() da classe HttpsURLConnection é chamado. Esse método
         * muda o SSLSocketFactory usado para criar novas conexões SSL/TSL
         * */
-        HttpsURLConnection.setDefaultSSLSocketFactory(selfsignedSSLContext.getSocketFactory());
+        HttpsURLConnection.setDefaultSSLSocketFactory(privateSSLcontext.getSocketFactory());
 
         /* Conexão feita exclusivamente para o servidor assinado */
         URL serveURL = new URL(url);
