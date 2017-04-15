@@ -1,0 +1,6 @@
+keytool -genkey -dname "cn=etprogramador.ga, ou=Development, o=etprogramador.ga, c=US" -alias selfsignedcert1 -keypass To35@nny85 -keystore certsjks -storepass To35
+@nny85 -validity 356
+
+keytool -export -alias selfsignedcert1 -keystore certsjks -storepass To35@nny85 -keypass To35@nny85 -file cert.cer
+
+keytool -import -file C:\Users\Jose\AndroidStudioProjects\CriptografiaAES-PBE\cert.cer -keypass To35@nny85 -keystore C:\Users\Jose\AndroidStudioProjects\CriptografiaAES-PBE\selfsignedcert1 -storetype BKS -storepass To35@nny85 -providerClass org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath C:\Users\Jose\AndroidStudioProjects\CriptografiaAES-PBE\bcprov-jdk15on-156.jar -alias selfsignedcert1
